@@ -94,7 +94,17 @@ body {
   background: var(--accent);
 }
 
-.tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Unsaved work leans. The dot beside it says the same thing, but the name is
+     what the eye lands on, and italics read at a glance without adding chrome.
+     No transition: font-style is not an animatable property, so the switch is
+     always instant — which is the honest behaviour for "this is saved now". */
+  font-style: normal;
+}
+.tab-name[data-dirty="true"] { font-style: italic; }
 .tab-pin { font-size: 9px; flex: none; opacity: 0.75; }
 
 /* The dot and the close button occupy the same slot — hovering swaps them. */
@@ -173,6 +183,7 @@ body {
 .tab-overflow-item:hover { background: var(--hover-strong); }
 .tab-overflow-item[data-active="true"] { color: var(--accent); font-weight: 600; }
 .tab-overflow-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab-overflow-name[data-dirty="true"] { font-style: italic; }
 
 .wincontrols { display: flex; align-items: stretch; flex: none; }
 .wincontrol {

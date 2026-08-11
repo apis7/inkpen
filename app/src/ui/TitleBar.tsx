@@ -79,7 +79,7 @@ export function TitleBar(props: Props) {
               <Show when={doc.pinned}>
                 <span class="tab-pin" title="Pinned">📌</span>
               </Show>
-              <span class="tab-name">{doc.title}</span>
+              <span class="tab-name" data-dirty={doc.dirty}>{doc.title}</span>
               <span
                 class="tab-mark"
                 title={hovered() === doc.id ? 'Close  (Ctrl+W)' : undefined}
@@ -138,7 +138,7 @@ export function TitleBar(props: Props) {
                       props.onSelect(doc.id)
                     }}
                   >
-                    <span class="tab-overflow-name">{doc.title}</span>
+                    <span class="tab-overflow-name" data-dirty={doc.dirty}>{doc.title}</span>
                     <Show when={doc.dirty}>
                       <span class="tab-dot" />
                     </Show>
