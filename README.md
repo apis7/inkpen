@@ -12,7 +12,14 @@
 </p>
 
 <p align="center">
-  Windows &middot; 1.9 MB installer &middot; no administrator needed &middot; no account, no cloud, no telemetry
+  <b>No telemetry. No accounts. Inkpen never contacts a server.</b><br>
+  <sub>Not usage counts, not crash reports, not even a version check &mdash;
+  there is no HTTP client compiled into the program at all.
+  <a href="#about-that-no-telemetry-claim">One honest exception.</a></sub>
+</p>
+
+<p align="center">
+  Windows &middot; 1.9 MB installer &middot; no administrator needed
 </p>
 
 <p align="center">
@@ -83,8 +90,24 @@ window. Your tabs come back where you left them.
 
 And a short list of what it deliberately does not do: no AI, no terminal, no
 git integration, no language servers, no plugin store, no sign-in, no update
-checker, no telemetry of any kind. There is no HTTP client compiled into the
-binary at all, so nothing can leave your machine even by accident.
+checker, no telemetry of any kind.
+
+### About that no-telemetry claim
+
+It's structural rather than a promise. Inkpen originally had an update checker,
+which meant it carried an HTTP client. Both were removed, and with them went the
+only code in the project capable of making a network request — 507 lines of
+dependency tree. You don't have to take my word for it: `app/src-tauri/Cargo.toml`
+lists twelve direct dependencies and not one of them speaks HTTP.
+
+**The honest exception:** if a document you open contains a remote image, such
+as `![](https://example.com/chart.png)`, the preview loads it, and that is a
+request to `example.com` which reveals your IP address to whoever runs it. The
+document initiates it, not Inkpen, and it's the same thing any Markdown preview
+does — but it is real network traffic and you should know about it. Local image
+paths are never loaded at all. If you'd rather previews stayed entirely offline,
+[say so in an issue](https://github.com/apis7/inkpen/issues) and it becomes a
+setting.
 
 ## Tell me what to take out
 
@@ -135,8 +158,8 @@ being straightforward about it: this is agent-written software, it's version
 0.1, and it hasn't yet been through the kind of use that shakes out the
 last bugs.
 
-Your files are treated carefully — atomic saves, a recovery journal, no
-network access at all — but keep backups of anything you'd hate to lose, the
+Your files are treated carefully — atomic saves, a recovery journal, nothing
+reported anywhere — but keep backups of anything you'd hate to lose, the
 same as you would with any new tool. If something goes wrong,
 [open an issue](https://github.com/apis7/inkpen/issues) — the About dialog
 links to a diagnostic log that makes reports much easier to act on. And as
