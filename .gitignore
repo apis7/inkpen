@@ -1,0 +1,29 @@
+# Build output
+app/node_modules/
+app/dist/
+app/src-tauri/target/
+app/src-tauri/gen/
+
+# Generated icon set — rebuilt from the masters by icons/build_icons.py.
+# The masters and the script are tracked; the outputs are not.
+app/src-tauri/icons/*.ico
+app/src-tauri/icons/*.png
+
+# Internal planning material, not part of the published project:
+# specification spreadsheet, architecture and stack notes, and the original
+# design mockup archive.
+md_files/
+ui_mockup/
+
+# Local scratch
+*.recovered.txt
+sample-export.html
+perf-report.txt
+errors*.log
+
+# OS and editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+.vscode/
+.idea/

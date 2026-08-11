@@ -1,0 +1,124 @@
+/* Markdown live styling.
+   Raw syntax marks stay in the document — dimmed to --mark, never removed. */
+
+.ink-mark {
+  opacity: var(--mark);
+}
+
+/* Headings differentiate by size and weight only. Colour is reserved for code —
+   coloured headings read as noise in a writing tool. */
+.ink-h { font-weight: 650; }
+.ink-h1 { font-size: 1.6em; }
+.ink-h2 { font-size: 1.4em; }
+.ink-h3 { font-size: 1.25em; }
+.ink-h4 { font-size: 1.1em; }
+.ink-h5 { font-size: 1.05em; }
+.ink-h6 { font-size: 1em; }
+
+.ink-strong { font-weight: 650; }
+.ink-em { font-style: italic; }
+.ink-strike { text-decoration: line-through; }
+
+.ink-code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 1px 0;
+}
+
+.cm-line.ink-codeblock {
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+}
+.cm-line.ink-codeblock-first { border-radius: 5px 5px 0 0; padding-top: 4px; }
+.cm-line.ink-codeblock-last { border-radius: 0 0 5px 5px; padding-bottom: 4px; }
+
+.cm-line.ink-quote {
+  border-left: 3px solid var(--quote-border);
+  padding-left: 12px;
+  margin-left: 3px;
+}
+
+.cm-line.ink-frontmatter {
+  background: var(--block-bg);
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+}
+
+.cm-line.ink-hr { color: var(--fg-faint); }
+
+.ink-listmark { color: var(--fg-muted); }
+.ink-link { color: var(--accent); }
+.ink-url { color: var(--fg-muted); }
+
+/* Ctrl reveals that links are clickable, matching Explorer and VS Code. */
+.cm-content:has(.ink-link):hover .ink-link { text-decoration: none; }
+.ink-ctrl .ink-link { text-decoration: underline; cursor: pointer; }
+
+/* Task checkbox — the one place a syntax mark is genuinely replaced. */
+.ink-check {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+  margin-right: 2px;
+  border: 1.5px solid var(--fg-faint);
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1;
+  color: transparent;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.ink-check:hover { border-color: var(--accent); }
+.ink-check[data-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* KaTeX. Click into a formula and the caret reveals its LaTeX source. */
+.ink-math {
+  cursor: text;
+}
+.ink-math-block {
+  display: block;
+  padding: 6px 0;
+  text-align: center;
+}
+.ink-math-error {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  color: var(--error);
+  background: var(--code-bg);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+/* KaTeX ships its own colour; bind it to the editor's so themes stay coherent. */
+.ink-math .katex {
+  color: var(--fg);
+  font-size: 1.05em;
+}
+
+.ink-img {
+  padding: 6px 0 6px 6px;
+  max-width: 100%;
+}
+.ink-img img {
+  display: block;
+  max-width: 100%;
+  max-height: 20rem;
+  border-radius: 4px;
+  background: var(--block-bg);
+}
+.ink-img-failed { display: none; }
+
+/* Fast mode: no tree, no decorations, no spellcheck. Just virtualised text. */
+.ink-fast .cm-content {
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+  line-height: var(--mono-lh);
+}

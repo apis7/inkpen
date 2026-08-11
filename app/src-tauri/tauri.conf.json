@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Inkpen",
+  "version": "0.1.0",
+  "identifier": "dev.inkpen.editor",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:5183",
+    "beforeDevCommand": "pnpm dev",
+    "beforeBuildCommand": "pnpm build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "title": "Inkpen",
+        "width": 1180,
+        "height": 720,
+        "minWidth": 480,
+        "minHeight": 320,
+        "resizable": true,
+        "decorations": false,
+        "transparent": false,
+        "center": true,
+        "visible": false,
+        "dragDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "copyright": "Inkpen",
+    "category": "Productivity",
+    "shortDescription": "Minimalist Markdown and text editor",
+    "longDescription": "A minimalist, lightning-fast editor for Markdown and common text formats.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerHooks": "installer-hooks.nsh",
+        "installerIcon": "icons/installer.ico"
+      }
+    },
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd", "mdx"],
+        "name": "Inkpen.Markdown",
+        "description": "Markdown Document",
+        "role": "Editor"
+      }
+    ]
+  }
+}
