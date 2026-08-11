@@ -19,6 +19,7 @@
   <a href="https://github.com/apis7/inkpen/releases">Download</a> &middot;
   <a href="#what-its-like-to-use">What it's like</a> &middot;
   <a href="#everything-it-does">Features</a> &middot;
+  <a href="#tell-me-what-to-take-out">What to take out</a> &middot;
   <a href="#a-note-on-how-this-was-built">How it was built</a>
 </p>
 
@@ -84,6 +85,25 @@ And a short list of what it deliberately does not do: no AI, no terminal, no
 git integration, no language servers, no plugin store, no sign-in, no
 telemetry of any kind. Nothing leaves your machine.
 
+## Tell me what to take out
+
+Bug reports are welcome. So is the opposite kind of report: **suggestions for
+features to remove.**
+
+Everything in that table costs something. A millisecond at startup, a line in
+a menu, one more thing to learn, one more thing that can break. If some part
+of Inkpen feels like clutter, or you've had it installed for a month and never
+touched a particular feature, that is worth
+[an issue](https://github.com/apis7/inkpen/issues). "Get rid of the outline
+panel" is as useful to me as "the outline panel is broken" — arguably more.
+
+Yes, removing a feature means one less feature. It also means less to load,
+less to render, less to maintain and less in your way. That trade is the whole
+point of this editor, and it only holds if things come out as readily as they
+go in.
+
+Less is more.
+
 ## Getting it
 
 Grab the installer from [Releases](https://github.com/apis7/inkpen/releases)
@@ -118,7 +138,9 @@ Your files are treated carefully — atomic saves, a recovery journal, no
 network access at all — but keep backups of anything you'd hate to lose, the
 same as you would with any new tool. If something goes wrong,
 [open an issue](https://github.com/apis7/inkpen/issues) — the About dialog
-links to a diagnostic log that makes reports much easier to act on.
+links to a diagnostic log that makes reports much easier to act on. And as
+above, issues proposing that something be *taken out* are just as welcome as
+bug reports.
 
 ## Building it yourself
 
