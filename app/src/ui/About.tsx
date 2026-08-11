@@ -11,8 +11,8 @@ interface Fact {
 
 /** Measured on the development machine; see md_files/TECH_STACK.md §8. */
 const FACTS: Fact[] = [
-  { label: 'Cold start', value: '~330 ms to a live cursor' },
-  { label: 'Keystroke cost', value: '~1.6 ms inside a 6 ms frame' },
+  { label: 'Cold start', value: '~240 ms to a live cursor' },
+  { label: 'Keystroke cost', value: '~1.1 ms inside a 6 ms frame' },
   { label: 'Installer', value: '1.9 MB, no admin required' },
   { label: 'Telemetry', value: 'none, ever' },
 ]

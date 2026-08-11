@@ -40,7 +40,7 @@ take a few seconds and several hundred megabytes to tell you so.
 
 Sometimes you just want to write something down.
 
-Inkpen is the small end of that trade. It opens in about a third of a second,
+Inkpen is the small end of that trade. It opens in about a quarter of a second,
 it holds tabs, it understands Markdown properly, and it does nothing else. The
 whole installer is smaller than a phone photo.
 
@@ -121,9 +121,9 @@ Measured on an ordinary laptop, not a benchmark rig:
 
 | | |
 | --- | --- |
-| Opening the app | about a third of a second to a blinking cursor |
-| Cost of a keystroke | roughly 1.6 ms, in a frame with 6 ms to spare |
-| Opening a 1 MB document | about 90 ms |
+| Opening the app | 242 ms to a blinking cursor |
+| Cost of a keystroke | 1.1 ms, in a frame with 6 ms to spare |
+| Opening a 1 MB document | 57 ms |
 | Installer | 1.9 MB |
 
 ## A note on how this was built
