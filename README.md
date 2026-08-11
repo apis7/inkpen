@@ -4,9 +4,11 @@
 
 <h1 align="center">Inkpen</h1>
 
+<p align="center"><b><i>Less is more.</i></b></p>
+
 <p align="center">
-  <b>A Markdown editor that opens instantly, stays out of your way,<br>
-  and never loses what you typed.</b>
+  A Markdown editor that opens instantly, stays out of your way,<br>
+  and never loses what you typed.
 </p>
 
 <p align="center">

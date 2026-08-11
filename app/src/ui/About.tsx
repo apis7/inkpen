@@ -37,6 +37,7 @@ export function About(props: { onClose: () => void }) {
           <img class="about-icon" src={iconUrl} alt="" width="72" height="72" />
           <div>
             <h2>Inkpen</h2>
+            <div class="about-tagline">Less is more.</div>
             <div class="about-version">version 0.1.0</div>
           </div>
         </div>
