@@ -19,14 +19,13 @@ async function openLog() {
   }
 }
 
-type Section = 'editor' | 'appearance' | 'files' | 'keyboard' | 'updates' | 'about'
+type Section = 'editor' | 'appearance' | 'files' | 'keyboard' | 'about'
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'editor', label: 'Editor' },
   { id: 'appearance', label: 'Appearance' },
   { id: 'files', label: 'Files' },
   { id: 'keyboard', label: 'Keyboard' },
-  { id: 'updates', label: 'Updates' },
   { id: 'about', label: 'About' },
 ]
 
@@ -223,12 +222,6 @@ export function Settings(props: { initial?: Section }) {
               onChange={(v) => updateSettings((s) => { s.editor.typewriter = v })}
             />
           </Row>
-          <Row label="Vim mode" hint="Loaded on demand; costs nothing while off.">
-            <Toggle
-              value={settings.editor.vimMode}
-              onChange={(v) => updateSettings((s) => { s.editor.vimMode = v })}
-            />
-          </Row>
         </Show>
 
         <Show when={section() === 'appearance'}>
@@ -354,50 +347,6 @@ export function Settings(props: { initial?: Section }) {
               Reset all to defaults
             </button>
           </div>
-        </Show>
-
-        <Show when={section() === 'updates'}>
-          <h2>Updates</h2>
-          <p class="set-note">
-            Inkpen never downloads or installs on its own. A check makes one request on
-            launch, at most once per interval, and tells you if something newer exists —
-            nothing more. Between checks there is no network activity at all.
-          </p>
-          <Row label="Check for updates" hint="One request on launch, off the critical path.">
-            <Toggle
-              value={settings.updates.enabled}
-              onChange={(v) => updateSettings((s) => { s.updates.enabled = v })}
-            />
-          </Row>
-          <Row label="Check interval" hint="Days between automatic checks.">
-            <Num
-              value={settings.updates.intervalDays}
-              min={1}
-              max={365}
-              onChange={(v) => updateSettings((s) => { s.updates.intervalDays = v })}
-            />
-          </Row>
-          <Row
-            label="Release manifest URL"
-            hint="A JSON document with version, notes and url. Empty means updates are off — no server is configured by default, so nothing is contacted."
-          >
-            <input
-              class="set-input"
-              style={{ width: '280px', 'text-align': 'left' }}
-              type="text"
-              placeholder="https://…/latest.json"
-              value={settings.updates.endpoint}
-              onChange={(e) =>
-                updateSettings((s) => { s.updates.endpoint = e.currentTarget.value.trim() })
-              }
-            />
-          </Row>
-          <Row
-            label="Unsigned installer"
-            hint="Inkpen is not code-signed, so each install shows a Windows SmartScreen warning you have to click through. That is why updates are never automatic."
-          >
-            <span class="set-static">acknowledged</span>
-          </Row>
         </Show>
 
         <Show when={section() === 'about'}>

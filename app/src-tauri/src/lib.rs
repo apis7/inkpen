@@ -34,7 +34,6 @@ pub fn run() {
             commands::watch::unwatch,
             commands::export::render_html,
             commands::export::export_html,
-            commands::update::check_update,
             startup_args,
             startup_flags,
             perf_write,

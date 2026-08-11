@@ -13,7 +13,7 @@ interface Fact {
 const FACTS: Fact[] = [
   { label: 'Cold start', value: '~330 ms to a live cursor' },
   { label: 'Keystroke cost', value: '~1.6 ms inside a 6 ms frame' },
-  { label: 'Installer', value: '3.6 MB, no admin required' },
+  { label: 'Installer', value: '1.9 MB, no admin required' },
   { label: 'Telemetry', value: 'none, ever' },
 ]
 
@@ -44,8 +44,8 @@ export function About(props: { onClose: () => void }) {
 
         <p class="about-blurb">
           A minimalist, lightning-fast editor for Markdown and common text formats. Tabs,
-          no clutter. No AI, no terminal, no git, no language servers, no plugins, no cloud —
-          just text, and getting out of the way of it.
+          no clutter. No AI, no terminal, no git, no language servers, no plugins, no cloud,
+          no update checker — just text, and getting out of the way of it.
         </p>
 
         <div class="about-facts">

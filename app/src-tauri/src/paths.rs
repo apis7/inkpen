@@ -51,6 +51,8 @@ fn migrate_from_legacy(legacy: &PathBuf, target: &PathBuf) {
     if !legacy.exists() || legacy == target {
         return;
     }
+    // "update.json" is carried across only to clean up after the removed update
+    // checker; nothing writes it any more.
     const OWNED: [&str; 5] = ["session.json", "update.json", "errors.log", "errors.log.1", "perf-report.txt"];
 
     for name in OWNED {

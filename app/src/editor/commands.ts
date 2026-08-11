@@ -198,37 +198,6 @@ export const joinLines: StateCommand = ({ state, dispatch }) => {
   return true
 }
 
-export const sortLines: StateCommand = ({ state, dispatch }) => {
-  const { from, to } = selectedLineSpan(state)
-  const lines = state.sliceDoc(from, to).split('\n')
-  if (lines.length < 2) return false
-  const sorted = [...lines].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-  dispatch(state.update({ changes: { from, to, insert: sorted.join('\n') }, userEvent: 'input.sort' }))
-  return true
-}
-
-function convertCase(fn: (s: string) => string): StateCommand {
-  return ({ state, dispatch }) => {
-    if (state.selection.ranges.every((r) => r.empty)) return false
-    const changes = state.changeByRange((range) => ({
-      changes: { from: range.from, to: range.to, insert: fn(state.sliceDoc(range.from, range.to)) },
-      range,
-    }))
-    dispatch(state.update(changes, { userEvent: 'input.case' }))
-    return true
-  }
-}
-
-export const upperCase = convertCase((s) => s.toUpperCase())
-export const lowerCase = convertCase((s) => s.toLowerCase())
-export const titleCase = convertCase((s) =>
-  s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()),
-)
-export const sentenceCase = convertCase((s) => {
-  const lower = s.toLowerCase()
-  return lower.replace(/(^\s*\w|[.!?]\s+\w)/g, (c) => c.toUpperCase())
-})
-
 export const trimTrailingWhitespace: StateCommand = ({ state, dispatch }) => {
   const changes: ChangeSpec[] = []
   for (let n = 1; n <= state.doc.lines; n++) {

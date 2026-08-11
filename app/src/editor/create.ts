@@ -19,7 +19,7 @@ import {
   syntaxHighlighting,
   defaultHighlightStyle,
 } from '@codemirror/language'
-import { languages } from '@codemirror/language-data'
+import { languages } from './languages'
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search'
 import { Compartment, EditorState } from '@codemirror/state'
 import type { Extension } from '@codemirror/state'
@@ -38,7 +38,6 @@ import {
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 
 import { linkClickHandler, markdownDecorations } from './markdown-decorations'
-import { mathPlugin } from './math'
 import { themeExtensions } from './theme'
 import { smartListContinuation } from './list-continuation'
 
@@ -49,7 +48,6 @@ export const compartments = {
   lineNumbers: new Compartment(),
   wrap: new Compartment(),
   readOnly: new Compartment(),
-  vim: new Compartment(),
   indent: new Compartment(),
   spellcheck: new Compartment(),
   whitespace: new Compartment(),
@@ -113,7 +111,6 @@ export interface CreateOptions {
   indentSize: number
   indentWithTabs: boolean
   spellcheck: boolean
-  vimMode: boolean
   showWhitespace: boolean
   typewriter: boolean
   onChange: (changes: import('@codemirror/state').ChangeSet, doc: string) => void
@@ -139,9 +136,6 @@ export function createEditor(opts: CreateOptions): EditorView {
     compartments.lineNumbers.of(opts.lineNumbers ? [lineNumbers(), foldGutter()] : []),
     compartments.wrap.of(opts.wordWrap ? EditorView.lineWrapping : []),
     compartments.readOnly.of(EditorState.readOnly.of(opts.readOnly)),
-    // Vim loads lazily — it is a large chunk for a feature that is off by
-    // default, and it must not sit on the cold-start path.
-    compartments.vim.of([]),
     compartments.indent.of(
       indentUnit.of(opts.indentWithTabs ? '\t' : ' '.repeat(opts.indentSize)),
     ),
@@ -180,7 +174,7 @@ export function createEditor(opts: CreateOptions): EditorView {
       compartments.language.of([]),
       compartments.markdown.of(
         opts.language === 'markdown'
-          ? [markdownDecorations, mathPlugin, linkClickHandler, smartListContinuation]
+          ? [markdownDecorations, linkClickHandler, smartListContinuation]
           : [syntaxHighlighting(defaultHighlightStyle, { fallback: true })],
       ),
     )
@@ -198,14 +192,7 @@ export function createEditor(opts: CreateOptions): EditorView {
     })
   }
 
-  if (opts.vimMode) void setVimMode(view, true)
-
   return view
-}
-
-export async function setVimMode(view: EditorView, enabled: boolean) {
-  const ext = enabled ? (await import('@replit/codemirror-vim')).vim() : []
-  view.dispatch({ effects: compartments.vim.reconfigure(ext) })
 }
 
 export interface LiveSettings {
@@ -216,7 +203,6 @@ export interface LiveSettings {
   indentWithTabs: boolean
   spellcheck: boolean
   typewriter: boolean
-  vimMode: boolean
 }
 
 /**
@@ -250,8 +236,6 @@ export function applyLiveSettings(view: EditorView, s: LiveSettings, fastMode: b
       compartments.typewriter.reconfigure(s.typewriter ? typewriterScrolling : []),
     ],
   })
-  // Vim loads lazily, so it reconfigures on its own schedule.
-  void setVimMode(view, s.vimMode && !fastMode)
 }
 
 export { undo, redo, StreamLanguage }

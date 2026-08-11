@@ -153,19 +153,8 @@ export async function runBenchmark(view: EditorView): Promise<string> {
       `(${big.length.toLocaleString()} chars, ${view.state.doc.lines.toLocaleString()} lines)`,
   )
 
-  // Long enough for the lazy KaTeX chunk to arrive before reporting on it.
-  await new Promise((r) => setTimeout(r, 1500))
-
-  const math = await import('./editor/math')
   const frameMs = await frameInterval()
-  lines.push('')
-  lines.push(
-    `katex             ${math.katexStatus}${math.katexError ? ` — ${math.katexError}` : ''}`,
-  )
-  lines.push(
-    `math widgets      ${document.querySelectorAll('.ink-math').length} placed, ` +
-      `${document.querySelectorAll('.katex').length} typeset`,
-  )
+
   lines.push('')
   lines.push(
     'NOTE  n=1 rows (boot.firstPaint, editor.mount, file.open) are single samples and',

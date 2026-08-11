@@ -25,7 +25,6 @@ toml = "0.8"
 notify = "8.2.0"
 notify-debouncer-full = "0.6.0"
 pulldown-cmark = { version = "0.13.4", default-features = false, features = ["html"] }
-reqwest = { version = "0.13.3", features = ["json"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [

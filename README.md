@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  Windows &middot; 3.6 MB installer &middot; no administrator needed &middot; no account, no cloud, no telemetry
+  Windows &middot; 1.9 MB installer &middot; no administrator needed &middot; no account, no cloud, no telemetry
 </p>
 
 <p align="center">
@@ -75,15 +75,16 @@ window. Your tabs come back where you left them.
 | | |
 | --- | --- |
 | **Writing** | Live Markdown styling, tabs with drag-to-reorder, find and replace, multiple cursors, code folding, spellcheck, word count, typewriter mode, and a command palette for everything else |
-| **Markdown** | GitHub-flavoured tables, task lists, front matter, inline image previews, math, an outline panel, and automatic list and table tidying |
-| **Also opens** | Plain text, JSON, YAML, TOML, INI, CSV, logs, and source files in roughly 130 languages |
+| **Markdown** | GitHub-flavoured tables, task lists, front matter, inline image previews, an outline panel, and automatic list and table tidying |
+| **Also opens** | Plain text, JSON, YAML, TOML, INI, CSV, logs, and source code — eighteen languages highlight inside fenced blocks |
 | **Files** | Autosave, crash recovery, encoding detection, notice when a file changes on disk, and large files opened without the editor bogging down |
 | **Sharing** | Export to HTML or PDF, print, and copy a selection as rich text |
-| **Yours** | Light and dark themes, custom themes, remappable keys, adjustable font and spacing, optional Vim mode |
+| **Yours** | Light and dark themes, custom themes, remappable keys, adjustable font and spacing |
 
 And a short list of what it deliberately does not do: no AI, no terminal, no
-git integration, no language servers, no plugin store, no sign-in, no
-telemetry of any kind. Nothing leaves your machine.
+git integration, no language servers, no plugin store, no sign-in, no update
+checker, no telemetry of any kind. There is no HTTP client compiled into the
+binary at all, so nothing can leave your machine even by accident.
 
 ## Tell me what to take out
 
@@ -123,13 +124,13 @@ Measured on an ordinary laptop, not a benchmark rig:
 | Opening the app | about a third of a second to a blinking cursor |
 | Cost of a keystroke | roughly 1.6 ms, in a frame with 6 ms to spare |
 | Opening a 1 MB document | about 90 ms |
-| Installer | 3.6 MB |
+| Installer | 1.9 MB |
 
 ## A note on how this was built
 
 Inkpen was written by Claude, Anthropic's coding agent, working from a
 specification and steady feedback from one person. Every feature here was
-tested by hand, and the code carries 200 automated tests. But it's worth
+tested by hand, and the code carries 184 automated tests. But it's worth
 being straightforward about it: this is agent-written software, it's version
 0.1, and it hasn't yet been through the kind of use that shakes out the
 last bugs.

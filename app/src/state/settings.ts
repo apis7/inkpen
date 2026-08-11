@@ -11,7 +11,6 @@ export interface Settings {
     indentSize: number
     indentWithTabs: boolean
     trimTrailingWhitespace: boolean
-    vimMode: boolean
     spellcheck: boolean
     /** Hold the active line at a fixed height on screen. */
     typewriter: boolean
@@ -41,12 +40,6 @@ export interface Settings {
     /** Most-recently-opened paths, newest first. */
     recentFiles: string[]
   }
-  updates: {
-    enabled: boolean
-    /** Empty means no release server is configured — nothing is requested. */
-    endpoint: string
-    intervalDays: number
-  }
   diagnostics: {
     /**
      * Record a running account of lifecycle events to `errors.log`.
@@ -69,7 +62,6 @@ export const DEFAULTS: Settings = {
     indentSize: 4,
     indentWithTabs: false,
     trimTrailingWhitespace: true,
-    vimMode: false,
     spellcheck: true,
     typewriter: false,
   },
@@ -91,7 +83,6 @@ export const DEFAULTS: Settings = {
     recentFiles: [],
   },
   // No release server exists yet, so the shipped default makes no network calls.
-  updates: { enabled: true, endpoint: '', intervalDays: 30 },
   diagnostics: { verboseLogging: false },
   keymap: {},
 }

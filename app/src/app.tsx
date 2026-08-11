@@ -158,7 +158,6 @@ export function App() {
       indentSize: settings.editor.indentSize,
       indentWithTabs: settings.editor.indentWithTabs,
       spellcheck: settings.editor.spellcheck,
-      vimMode: settings.editor.vimMode,
       showWhitespace: settings.editor.showWhitespace,
       typewriter: settings.editor.typewriter,
       onChange: (changes, text) => onDocChanged(doc.id, changes, text),
@@ -861,34 +860,6 @@ export function App() {
    * Never downloads, never installs — Inkpen is unsigned, and pushing a
    * SmartScreen prompt at someone unasked would be worse than a menu item.
    */
-  async function checkForUpdate(manual: boolean) {
-    if (!settings.updates.enabled && !manual) return
-    try {
-      const result = await ipc.checkUpdate(
-        manual,
-        settings.updates.endpoint,
-        settings.updates.intervalDays,
-      )
-      if (result.available) {
-        raise(`Inkpen ${result.available} is available (you have ${result.current}).`, 'warn', [
-          ...(result.url ? [{ label: 'Download', run: () => window.open(result.url!, '_blank') }] : []),
-          { label: 'Later', run: () => setNotice(null) },
-        ])
-      } else if (manual) {
-        flash(
-          result.checked
-            ? `Up to date (${result.current})`
-            : settings.updates.endpoint.trim()
-              ? `Checked recently — next check in ${result.nextCheckInDays} days`
-              : 'No update server configured',
-        )
-      }
-    } catch (e) {
-      // A check failure is never worth interrupting anyone over.
-      if (manual) flash(`Update check failed — ${errorMessage(e)}`, 'warn')
-    }
-  }
-
   /** Right-click menu for a tab. Replaces WebView2's, whose "Save as" saved the
    *  page as HTML rather than the document. */
   function tabMenuItems(id: string): ContextItem[] {
@@ -978,11 +949,6 @@ export function App() {
       { label: 'Bold', key: 'Ctrl+B', run: formatActions.bold, disabled: !hasSelection },
       { label: 'Italic', key: 'Ctrl+I', run: formatActions.italic, disabled: !hasSelection },
       { label: 'Insert Link', key: 'Ctrl+K', run: formatActions.link, disabled: !hasSelection },
-      { separator: true },
-      { label: 'UPPERCASE', run: () => runCmd(cmd.upperCase)(), disabled: !hasSelection },
-      { label: 'lowercase', run: () => runCmd(cmd.lowerCase)(), disabled: !hasSelection },
-      { label: 'Title Case', run: () => runCmd(cmd.titleCase)(), disabled: !hasSelection },
-      { label: 'Sort Lines', run: () => runCmd(cmd.sortLines)(), disabled: !hasSelection },
     ]
   }
 
@@ -1012,12 +978,7 @@ export function App() {
     { id: 'edit.copyRich', label: 'Copy as Rich Text', run: withView((v) => cmd.copySelectionAsRichText(v)) },
     { id: 'edit.duplicate', label: 'Duplicate Line', key: 'Ctrl+Shift+D', run: runCmd(cmd.duplicateLine) },
     { id: 'edit.join', label: 'Join Lines', run: runCmd(cmd.joinLines) },
-    { id: 'edit.sort', label: 'Sort Lines', run: runCmd(cmd.sortLines) },
     { id: 'edit.trim', label: 'Trim Trailing Whitespace', run: runCmd(cmd.trimTrailingWhitespace) },
-    { id: 'edit.upper', label: 'Convert to UPPERCASE', run: runCmd(cmd.upperCase) },
-    { id: 'edit.lower', label: 'Convert to lowercase', run: runCmd(cmd.lowerCase) },
-    { id: 'edit.title', label: 'Convert to Title Case', run: runCmd(cmd.titleCase) },
-    { id: 'edit.sentence', label: 'Convert to Sentence case', run: runCmd(cmd.sentenceCase) },
     { id: 'edit.goto', label: 'Go to Line', run: goToLine },
     { id: 'edit.reflow', label: 'Reflow — join wrapped lines', run: runCmd(cmd.reflowSelection) },
 
@@ -1043,7 +1004,6 @@ export function App() {
     { id: 'view.wrap', label: 'Toggle Word Wrap', key: 'Alt+Z', run: () => updateSettings((s) => { s.editor.wordWrap = !s.editor.wordWrap }) },
     { id: 'view.numbers', label: 'Toggle Line Numbers', run: () => updateSettings((s) => { s.editor.lineNumbers = !s.editor.lineNumbers }) },
     { id: 'view.theme', label: 'Toggle Dark / Light Theme', run: () => updateSettings((s) => { s.appearance.theme = s.appearance.theme === 'dark' ? 'light' : 'dark' }) },
-    { id: 'view.vim', label: 'Toggle Vim Mode', run: () => updateSettings((s) => { s.editor.vimMode = !s.editor.vimMode }) },
     { id: 'view.whitespace', label: 'Toggle Whitespace', run: () => updateSettings((s) => { s.editor.showWhitespace = !s.editor.showWhitespace }) },
     { id: 'view.typewriter', label: 'Toggle Typewriter Scrolling', run: () => updateSettings((s) => { s.editor.typewriter = !s.editor.typewriter }) },
     { id: 'view.onTop', label: 'Toggle Always on Top', run: () => void toggleAlwaysOnTop() },
@@ -1055,7 +1015,6 @@ export function App() {
     { id: 'export.print', label: 'Print…', key: 'Ctrl+P', run: () => void printDoc(false) },
 
     { id: 'app.about', label: 'About Inkpen', run: () => setAboutOpen(true) },
-    { id: 'app.update', label: 'Check for Updates', run: () => void checkForUpdate(true) },
     { id: 'app.settings', label: 'Settings', key: 'Ctrl+,', run: showSettings },
     { id: 'app.settingsFile', label: 'Open settings.toml', run: async () => { const p = await ipc.settingsPath(); void ipc.revealInExplorer(p) } },
     {
@@ -1097,7 +1056,7 @@ export function App() {
       item('view.theme'), item('view.typewriter'), item('view.onTop'),
       item('view.zoomIn'), item('view.zoomOut'), item('view.zoomReset'),
       { label: '', separator: true },
-      item('app.settings'), item('app.settingsFile'), item('app.update'),
+      item('app.settings'), item('app.settingsFile'),
       { label: '', separator: true },
       item('app.about'),
     ]
@@ -1204,7 +1163,6 @@ export function App() {
       indentWithTabs: settings.editor.indentWithTabs,
       spellcheck: settings.editor.spellcheck,
       typewriter: settings.editor.typewriter,
-      vimMode: settings.editor.vimMode,
     }
     untrack(() => {
       const targets = documents.docs.filter((d) => d.view)
@@ -1426,7 +1384,6 @@ export function App() {
     // Deferred off the cold-start path — nothing here blocks the cursor.
     setTimeout(() => void recoverCrashed(), 200)
     setTimeout(() => void ipc.journalSweep(30).catch(() => {}), 4000)
-    setTimeout(() => void checkForUpdate(false), 6000)
 
     // A slow drip of state, so a gradual failure is visible before the aftermath.
     onCleanup(

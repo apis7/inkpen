@@ -63,18 +63,6 @@ export async function pickExportPath(suggested: string, ext: string): Promise<st
   })
 }
 
-export interface UpdateCheck {
-  checked: boolean
-  current: string
-  available: string | null
-  notes: string | null
-  url: string | null
-  nextCheckInDays: number
-}
-
-export const checkUpdate = (force: boolean, endpoint: string, intervalDays: number) =>
-  invoke<UpdateCheck>('check_update', { force, endpoint, intervalDays })
-
 export const startupArgs = () => invoke<string[]>('startup_args')
 export const startupFlags = () => invoke<string[]>('startup_flags')
 export const perfWrite = (report: string) => invoke<string>('perf_write', { report })

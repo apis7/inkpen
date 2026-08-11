@@ -80,29 +80,6 @@
   color: #fff;
 }
 
-/* KaTeX. Click into a formula and the caret reveals its LaTeX source. */
-.ink-math {
-  cursor: text;
-}
-.ink-math-block {
-  display: block;
-  padding: 6px 0;
-  text-align: center;
-}
-.ink-math-error {
-  font-family: var(--mono);
-  font-size: 0.92em;
-  color: var(--error);
-  background: var(--code-bg);
-  border-radius: 3px;
-  padding: 0 3px;
-}
-/* KaTeX ships its own colour; bind it to the editor's so themes stay coherent. */
-.ink-math .katex {
-  color: var(--fg);
-  font-size: 1.05em;
-}
-
 .ink-img {
   padding: 6px 0 6px 6px;
   max-width: 100%;
