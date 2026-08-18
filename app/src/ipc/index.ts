@@ -65,6 +65,8 @@ export async function pickExportPath(suggested: string, ext: string): Promise<st
 
 export const startupArgs = () => invoke<string[]>('startup_args')
 export const startupFlags = () => invoke<string[]>('startup_flags')
+/** Anything the Rust side did before the frontend existed to log it. */
+export const startupNotes = () => invoke<string[]>('startup_notes')
 export const perfWrite = (report: string) => invoke<string>('perf_write', { report })
 
 // --- recovery journal -------------------------------------------------------

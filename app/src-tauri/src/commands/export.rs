@@ -128,12 +128,12 @@ pub fn markdown_to_html(markdown: &str, title: &str) -> String {
 }
 
 /// Renders without writing, for the print preview path.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn render_html(markdown: String, title: String) -> Result<String> {
     Ok(markdown_to_html(&markdown, &title))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn export_html(markdown: String, title: String, path: String) -> Result<String> {
     std::fs::write(&path, markdown_to_html(&markdown, &title))?;
     Ok(path)

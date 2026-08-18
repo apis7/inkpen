@@ -1,3 +1,16 @@
+//! Journal commands stay **synchronous on purpose.**
+//!
+//! The frontend fires appends without awaiting them, so their order on the wire
+//! is the order they must land in — replay applies records in file order, and a
+//! change record that overtakes the snapshot it depends on reconstructs the
+//! wrong document. A blocking command is dispatched in call order; moving these
+//! to the thread pool would let two appends interleave.
+//!
+//! They can afford it. Every one of them writes to the recovery folder beside
+//! the settings, always on local disk, and `append` — the only one on the
+//! keystroke path — does not fsync. The commands that had to move off the main
+//! thread are the ones that can reach a network share; none of these can.
+
 use crate::error::Result;
 use crate::journal::{self, RecoveredJournal};
 

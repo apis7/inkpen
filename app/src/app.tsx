@@ -114,6 +114,20 @@ export function App() {
   let toolbarTimer: number | undefined
   let outlineTimer: number | undefined
   const autosaveTimers = new Map<string, number>()
+  /**
+   * One save at a time per document, in call order.
+   *
+   * `save_file` runs off the main thread now, so a Ctrl+S landing on top of an
+   * in-flight autosave genuinely overlaps. Two consequences, both bad: the two
+   * calls share one temp file name, and the second carries the `mtime` from
+   * before the first wrote — which the staleness guard reads as "changed on
+   * disk" and reports as a conflict the user never caused.
+   *
+   * Chaining also means each save reads the buffer *after* the one before it
+   * finished, so what reaches disk is the latest text rather than a snapshot
+   * taken before a write that has since landed.
+   */
+  const saveChains = new Map<string, Promise<boolean>>()
 
   const win = getCurrentWindow()
 
@@ -482,7 +496,18 @@ export function App() {
 
   // ------------------------------------------------------------ file verbs --
 
-  async function save(id: string, opts: { silent?: boolean } = {}): Promise<boolean> {
+  function save(id: string, opts: { silent?: boolean } = {}): Promise<boolean> {
+    const previous = saveChains.get(id) ?? Promise.resolve(true)
+    // A failed save must not poison the queue behind it.
+    const next = previous.catch(() => false).then(() => saveNow(id, opts))
+    saveChains.set(id, next)
+    void next.finally(() => {
+      if (saveChains.get(id) === next) saveChains.delete(id)
+    })
+    return next
+  }
+
+  async function saveNow(id: string, opts: { silent?: boolean } = {}): Promise<boolean> {
     const doc = docById(id)
     if (!doc) return false
     if (!doc.path) return saveAs(id)
@@ -1380,6 +1405,13 @@ export function App() {
         return
       }
     } catch { /* not a benchmark run */ }
+
+    // Startup may have closed a previous instance whose window was lost. It had
+    // no logger of its own at the time; give it this one.
+    void ipc
+      .startupNotes()
+      .then((notes) => notes.forEach((n) => logEvent('startup', n)))
+      .catch(() => {})
 
     // Deferred off the cold-start path — nothing here blocks the cursor.
     setTimeout(() => void recoverCrashed(), 200)

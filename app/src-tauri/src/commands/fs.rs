@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::UNIX_EPOCH;
 
 use crate::error::{ErrorKind, InkpenError, Result};
@@ -153,7 +154,7 @@ fn file_name(path: &Path) -> String {
 
 // ----------------------------------------------------------------- commands --
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn open_file(path: String) -> Result<FileOpen> {
     let p = PathBuf::from(&path);
     let meta = fs::metadata(&p).map_err(|e| InkpenError::from(e).with_path(path.clone()))?;
@@ -183,7 +184,7 @@ pub fn open_file(path: String) -> Result<FileOpen> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn file_metadata(path: String) -> Result<FileMeta> {
     let meta = fs::metadata(&path).map_err(|e| InkpenError::from(e).with_path(path.clone()))?;
     Ok(FileMeta {
@@ -193,12 +194,24 @@ pub fn file_metadata(path: String) -> Result<FileMeta> {
     })
 }
 
+/// Saves run off the main thread, so they need a lock of their own.
+///
+/// Two saves of the same document would otherwise share one temp file name and
+/// race to swap it into place. A single global lock is enough — a save is rare,
+/// and one queueing behind another costs nothing that matters. What it must not
+/// do is block the UI thread, and it no longer does.
+static SAVING: Mutex<()> = Mutex::new(());
+
 /// Atomic save. Temp file in the same directory, fsync, then swap.
 ///
 /// `expected_mtime` is the staleness guard: pass the mtime the frontend last saw,
 /// or `None` for a brand-new file. A mismatch aborts rather than clobbering an
 /// edit made by another program.
-#[tauri::command]
+///
+/// Runs on Tauri's blocking pool rather than the main thread: on a network share
+/// the fsync alone measured ~1s, and every millisecond of that used to be a
+/// frozen window.
+#[tauri::command(async)]
 pub fn save_file(
     path: String,
     content: String,
@@ -206,6 +219,7 @@ pub fn save_file(
     line_ending: LineEnding,
     expected_mtime: Option<i64>,
 ) -> Result<SaveResult> {
+    let _guard = SAVING.lock().unwrap_or_else(|e| e.into_inner());
     let target = PathBuf::from(&path);
 
     let existing = fs::metadata(&target).ok();
@@ -315,7 +329,7 @@ fn swap_into_place(tmp: &Path, target: &Path, _target_exists: bool) -> Result<()
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn reveal_in_explorer(path: String) -> Result<()> {
     #[cfg(windows)]
     {

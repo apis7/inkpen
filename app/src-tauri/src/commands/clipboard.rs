@@ -112,6 +112,9 @@ mod win {
 }
 
 /// Plain UTF-8 text only. This is what `Ctrl+C` calls.
+/// Synchronous deliberately: the Windows clipboard belongs to a thread, and
+/// `OleSetClipboard` must be called from the one that owns it. Moving this to a
+/// pool thread would break copying, not speed it up.
 #[tauri::command]
 pub fn copy_plain(text: String) -> Result<()> {
     #[cfg(windows)]

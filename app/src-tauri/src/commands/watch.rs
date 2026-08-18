@@ -52,6 +52,9 @@ pub fn init(app: AppHandle) {
     let _ = APP.set(app);
 }
 
+/// Resolves a path to its canonical form. On a network share this is a round
+/// trip to the server, which is why every command that reaches it runs off the
+/// main thread.
 fn normalise(p: &Path) -> PathBuf {
     std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf())
 }
@@ -116,7 +119,7 @@ fn ensure_watcher() -> &'static Mutex<Option<Deb>> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn watch_path(doc_id: String, path: String) -> crate::error::Result<()> {
     let file = normalise(Path::new(&path));
     let Some(dir) = file.parent().map(|p| p.to_path_buf()) else {
@@ -138,7 +141,7 @@ pub fn watch_path(doc_id: String, path: String) -> crate::error::Result<()> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn unwatch(doc_id: String) -> crate::error::Result<()> {
     let mut map = watched().lock().unwrap();
     let removed: Vec<PathBuf> = map

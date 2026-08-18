@@ -3,6 +3,7 @@ mod error;
 mod journal;
 mod model;
 mod paths;
+mod reap;
 
 use tauri::Manager;
 
@@ -36,6 +37,7 @@ pub fn run() {
             commands::export::export_html,
             startup_args,
             startup_flags,
+            startup_notes,
             perf_write,
             log_error,
             log_path,
@@ -47,6 +49,13 @@ pub fn run() {
             // The window is created hidden and shown once the frontend has painted,
             // so the user never sees an empty white rectangle. See ARCHITECTURE §4.
             if let Some(w) = app.get_webview_window("main") {
+                // Before showing anything: close any previous instance whose own
+                // window was lost. Our window must already exist — the test reads
+                // its class off it rather than hard-coding one. See `reap.rs`.
+                #[cfg(windows)]
+                if let Ok(hwnd) = w.hwnd() {
+                    reap::reap_orphans(hwnd.0 as isize);
+                }
                 w.show().ok();
             }
             Ok(())
@@ -103,6 +112,13 @@ fn log_error(message: String) -> error::Result<()> {
 fn log_path() -> error::Result<String> {
     let dir = crate::paths::data_dir()?;
     Ok(dir.join("errors.log").display().to_string())
+}
+
+/// Anything startup did before the frontend existed and could log it for itself.
+/// Drained once, at boot.
+#[tauri::command]
+fn startup_notes() -> Vec<String> {
+    reap::take_notes()
 }
 
 /// Switches passed on the command line, e.g. `--benchmark`.
