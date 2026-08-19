@@ -1215,22 +1215,35 @@ export function App() {
     // intercepts, and it finishes by re-issuing close rather than destroying —
     // so a missing window permission can never leave the app unclosable.
     const unlisten = await win.onCloseRequested(async (event) => {
+      // Traced end to end because a close has been seen to go nowhere: an
+      // instance acknowledged the OS close and simply stayed open, with no
+      // evidence either way. Rust logs its own `close` line when the request
+      // arrives (see lib.rs); this is the other half. A Rust line with no line
+      // from here means the event never crossed into the webview. Both lines
+      // with no `closing` means the handler stalled inside itself, and the last
+      // step logged says where.
+      logEvent('close', 'handler entered')
+
       // Even on the already-decided path, untitled journals must be released —
       // anything left behind reappears as a false recovery on the next launch.
       if (quitting) {
         for (const d of documents.docs) if (!d.path) void journal.release(d.id)
+        logEvent('close', 'closing — quit already confirmed')
         return
       }
 
       const scratch = unsavedUntitled()
       if (!scratch.length) {
         await captureGeometry()
+        logEvent('close', 'geometry captured')
         await saveSessionNow(buildSession())
         for (const d of documents.docs) if (!d.path) void journal.release(d.id)
+        logEvent('close', 'closing — nothing unsaved')
         return
       }
 
       event.preventDefault()
+      logEvent('close', `held for the quit prompt — ${scratch.length} unsaved`)
       if (await confirmQuit()) {
         for (const d of documents.docs) if (d.dirty && d.path) await save(d.id, { silent: true })
         // Untitled buffers resolved by the quit prompt release their journals;
@@ -1240,7 +1253,10 @@ export function App() {
         await captureGeometry()
         await saveSessionNow(buildSession())
         quitting = true
+        logEvent('close', 'closing — quit confirmed')
         await win.close()
+      } else {
+        logEvent('close', 'cancelled at the quit prompt')
       }
     })
     onCleanup(unlisten)

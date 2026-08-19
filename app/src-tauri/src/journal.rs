@@ -148,13 +148,35 @@ pub fn release(doc_id: &str) -> Result<()> {
 }
 
 /// Forces every dirty handle to disk. Called on window blur and shutdown.
+///
+/// The fsyncs happen *outside* the lock, deliberately. Holding it across them
+/// makes every concurrent `append` — including one on the main thread, on the
+/// keystroke path — wait for a disk flush it has no stake in. That was already
+/// true of the background flusher every five seconds, before any of this ran on
+/// a pool thread.
+///
+/// Note this is why `journal_sync` is not an async command: moving it to the
+/// pool would not take the wait off the main thread, it would only move it from
+/// the fsync to the mutex behind it. Narrowing the lock is the fix; relocating
+/// the caller is not.
 pub fn sync_all() -> Result<()> {
-    let mut map = journals().lock().unwrap();
-    for handle in map.values_mut() {
-        if handle.dirty {
-            handle.file.sync_all()?;
-            handle.dirty = false;
-        }
+    let pending: Vec<File> = {
+        let mut map = journals().lock().unwrap();
+        map.values_mut()
+            .filter(|h| h.dirty)
+            .filter_map(|h| {
+                // Cleared before the flush, not after: an append landing during
+                // it marks the handle dirty again and is caught by the next
+                // pass, which is correct. The reverse would clear a flag set by
+                // a write this flush never covered.
+                h.dirty = false;
+                h.file.try_clone().ok()
+            })
+            .collect()
+    };
+
+    for file in pending {
+        file.sync_all()?;
     }
     Ok(())
 }

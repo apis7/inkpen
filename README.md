@@ -177,6 +177,12 @@ pnpm app:dev          # run with hot reload
 pnpm app:build        # produce the installer
 ```
 
+Use `pnpm app:build` for a real build. `cargo build --release` on its own
+produces a **dev** binary — Tauri decides that from the `custom-protocol`
+feature, not from the profile — which loads the frontend from the dev server
+and shows "can't reach this page" once installed. If you need cargo directly,
+pass `--features custom-protocol`. A dev build says so in its first log line.
+
 Tests:
 
 ```sh

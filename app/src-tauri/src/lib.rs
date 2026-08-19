@@ -43,8 +43,18 @@ pub fn run() {
             log_path,
         ])
         .setup(|app| {
+            let _ = STARTED.set(std::time::Instant::now());
             commands::watch::init(app.handle().clone());
             journal::spawn_flusher();
+
+            // A dev-mode binary loads the frontend from the dev server, so an
+            // installed one shows "can't reach this page" and nothing else. The
+            // build that produces it looks entirely normal — `cargo build
+            // --release` without `custom-protocol` is enough, because Tauri
+            // derives `dev` from the *absence* of that feature. Say so here, so
+            // the log answers the question in one line. See README, Building.
+            #[cfg(dev)]
+            log_line("build", "DEV BUILD — frontend loads from the dev server, not the bundle");
 
             // The window is created hidden and shown once the frontend has painted,
             // so the user never sees an empty white rectangle. See ARCHITECTURE §4.
@@ -63,6 +73,23 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building Inkpen")
         .run(|_app, event| {
+            // A close that never completes has happened: a 27-hour-old instance
+            // acknowledged WM_CLOSE and stayed open, with nothing in the log
+            // either way. Every branch of the frontend's close handler is
+            // try-caught, so it did not throw — which leaves "the event never
+            // reached it" as the remaining explanation, and that is precisely
+            // what this line settles. A `close` here with no `close` from the
+            // frontend means Rust to webview delivery has died; both means the
+            // handler ran and stalled somewhere inside itself.
+            if let tauri::RunEvent::WindowEvent {
+                label,
+                event: tauri::WindowEvent::CloseRequested { .. },
+                ..
+            } = &event
+            {
+                log_line("close", &format!("close requested by the OS for \"{label}\""));
+            }
+
             // Last chance to get buffered journal writes onto the platter.
             if let tauri::RunEvent::ExitRequested { .. } | tauri::RunEvent::Exit = event {
                 let _ = journal::sync_all();
@@ -90,8 +117,20 @@ fn startup_args() -> Vec<String> {
 /// Verbose logging can otherwise fill a disk over a long session.
 const LOG_MAX_BYTES: u64 = 4 * 1024 * 1024;
 
+/// `durable` decides whether the line is fsynced before returning.
+///
+/// Errors and lifecycle events are: the failure this log exists to catch may
+/// take the process with it, and a buffered final line is exactly the one worth
+/// having. Verbose traffic is not. Heartbeats and focus changes arrive every few
+/// seconds, and an fsync each is a steady trickle of main-thread disk waits paid
+/// for lines nobody reads after a crash — the page cache carries those through
+/// anything short of a power cut.
 #[tauri::command]
-fn log_error(message: String) -> error::Result<()> {
+fn log_error(message: String, durable: bool) -> error::Result<()> {
+    append_log(&message, durable)
+}
+
+fn append_log(message: &str, durable: bool) -> error::Result<()> {
     use std::io::Write;
     let dir = crate::paths::data_dir()?;
     let path = dir.join("errors.log");
@@ -102,10 +141,60 @@ fn log_error(message: String) -> error::Result<()> {
 
     let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&path)?;
     writeln!(f, "{message}")?;
-    // fsync per line: the failure this exists to catch may take the process with
-    // it, and a buffered final line is exactly the one worth having.
-    f.sync_all()?;
+    if durable {
+        f.sync_all()?;
+    }
     Ok(())
+}
+
+/// Wall-clock start of this process, for the uptime column.
+static STARTED: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+
+/// Writes a log line from Rust, in the same format the frontend uses.
+///
+/// Reserved for the places where routing through the frontend would defeat the
+/// purpose. The close-request trace is exactly that: the fault it exists to
+/// catch is the frontend never receiving the event, so a diagnostic that
+/// depended on the frontend would fall silent at the one moment it matters.
+pub(crate) fn log_line(kind: &str, detail: &str) {
+    let uptime = STARTED
+        .get()
+        .map(|t| format!("+{}s", t.elapsed().as_secs()))
+        .unwrap_or_default();
+    // One space then an 8-wide uptime column, exactly as `stamp()` builds it
+    // in diagnostics.ts — the two sides interleave in one file and must line up.
+    let _ = append_log(&format!("{} {uptime:>8}  {kind:<10} {detail}", iso_now()), true);
+}
+
+/// UTC in the same shape as JavaScript's `toISOString`, so lines written from
+/// either side sort and read as one log.
+fn iso_now() -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    let (secs, ms) = (now.as_secs(), now.subsec_millis());
+    let (y, mo, d) = civil_from_days((secs / 86_400) as i64);
+    let tod = secs % 86_400;
+    format!(
+        "{y:04}-{mo:02}-{d:02}T{:02}:{:02}:{:02}.{ms:03}Z",
+        tod / 3600,
+        (tod % 3600) / 60,
+        tod % 60,
+    )
+}
+
+/// Days since the Unix epoch to a civil date. Howard Hinnant's algorithm — the
+/// alternative is a date crate for one log line.
+fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = (z - era * 146_097) as i64;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+    (if m <= 2 { yoe + era * 400 + 1 } else { yoe + era * 400 }, m, d)
 }
 
 #[tauri::command]
@@ -137,4 +226,32 @@ fn perf_write(report: String) -> error::Result<String> {
     let path = dir.join("perf-report.txt");
     std::fs::write(&path, report)?;
     Ok(path.display().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::civil_from_days;
+
+    /// Days are counted from the Unix epoch, so day zero pins the offset.
+    #[test]
+    fn day_zero_is_the_epoch() {
+        assert_eq!(civil_from_days(0), (1970, 1, 1));
+    }
+
+    /// Leap-year handling is the whole risk in this algorithm: 2000 was a leap
+    /// year and 1900 was not, and the era arithmetic is what decides that.
+    #[test]
+    fn handles_leap_days_and_century_rules() {
+        assert_eq!(civil_from_days(59), (1970, 3, 1)); // 1970 is not a leap year
+        assert_eq!(civil_from_days(10_957), (2000, 1, 1));
+        assert_eq!(civil_from_days(11_016), (2000, 2, 29)); // 2000 *is* a leap year
+        assert_eq!(civil_from_days(11_017), (2000, 3, 1));
+    }
+
+    /// A date past the log's own era, to catch overflow in the era division.
+    #[test]
+    fn handles_dates_well_past_now() {
+        assert_eq!(civil_from_days(20_684), (2026, 8, 19));
+        assert_eq!(civil_from_days(36_525), (2070, 1, 1));
+    }
 }

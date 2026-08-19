@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use std::time::UNIX_EPOCH;
+use std::time::{Instant, UNIX_EPOCH};
 
 use crate::error::{ErrorKind, InkpenError, Result};
 use crate::model::{language_for, Encoding, FileMeta, FileOpen, LineEnding, SaveResult};
@@ -249,6 +249,10 @@ pub fn save_file(
 
     let bytes = encode(&from_lf(&content, line_ending), encoding);
 
+    // Timed, because the self-write suppression window is derived from it: the
+    // change notification comes back over the same link that made the write slow.
+    let started = Instant::now();
+
     // Temp lives beside the target so the swap stays on one volume and stays atomic.
     let tmp = dir.join(format!(".{}.inkpen-tmp", file_name(&target)));
     {
@@ -272,7 +276,7 @@ pub fn save_file(
 
     // Register before returning, so the watch event our own write is about to
     // produce is recognised as ours and never reaches the frontend.
-    super::watch::note_self_write(&target);
+    super::watch::note_self_write(&target, started.elapsed());
 
     let meta = fs::metadata(&target)?;
     Ok(SaveResult {

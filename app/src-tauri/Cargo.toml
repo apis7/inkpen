@@ -9,6 +9,15 @@ rust-version = "1.77"
 name = "inkpen_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Tauri reads production-vs-dev off this feature and nothing else: its build
+# script sets `dev = !custom-protocol`. A plain `cargo build --release` is
+# therefore still a *dev* build — it embeds the dev server URL instead of the
+# bundled frontend, and the installed result shows "can't reach this page" with
+# no other clue. `tauri build` passes the feature for you; a bare cargo build
+# needs `--features custom-protocol`.
+custom-protocol = ["tauri/custom-protocol"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

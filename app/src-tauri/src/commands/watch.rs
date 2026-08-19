@@ -25,7 +25,26 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 const DEBOUNCE: Duration = Duration::from_millis(400);
-const SUPPRESS_WINDOW: Duration = Duration::from_secs(2);
+
+/// How long a write stays recognisable as ours.
+///
+/// This used to be a flat 2 seconds, which assumed local disk. On a network
+/// share it is not enough: the save itself measured around a second, the change
+/// notification then travels back over the same slow link, and the debounce adds
+/// its own delay on top. Once the total passes the window, Inkpen warns the user
+/// that a file *they* just saved changed on disk — a conflict nobody caused.
+///
+/// So the window is derived from how long the write actually took, on the theory
+/// that the notification is delayed by the same latency that delayed the write.
+/// Four times the write, floored and capped. The cost of being too generous is
+/// only a missed external-change notice for a file being actively edited here;
+/// the cost of being too tight is a false alarm on every save.
+const SUPPRESS_MIN: Duration = Duration::from_secs(5);
+const SUPPRESS_MAX: Duration = Duration::from_secs(60);
+
+fn suppress_for(write_took: Duration) -> Duration {
+    (write_took * 4 + DEBOUNCE).clamp(SUPPRESS_MIN, SUPPRESS_MAX)
+}
 
 type Deb = Debouncer<RecommendedWatcher, RecommendedCache>;
 
@@ -36,6 +55,7 @@ static WATCHED: OnceLock<Mutex<HashMap<PathBuf, String>>> = OnceLock::new();
 /// Directories currently under watch, with a refcount so unwatching one file
 /// does not go deaf on its siblings.
 static DIRS: OnceLock<Mutex<HashMap<PathBuf, usize>>> = OnceLock::new();
+/// Absolute path -> the instant its self-write suppression expires.
 static SELF_WRITES: OnceLock<Mutex<Vec<(PathBuf, Instant)>>> = OnceLock::new();
 
 fn watched() -> &'static Mutex<HashMap<PathBuf, String>> {
@@ -60,16 +80,18 @@ fn normalise(p: &Path) -> PathBuf {
 }
 
 /// Called by the save path immediately after writing, so the resulting watch
-/// event can be recognised as ours and dropped.
-pub fn note_self_write(path: &Path) {
+/// event can be recognised as ours and dropped. `write_took` is how long the
+/// save spent on disk, which sets how long we keep listening for its echo.
+pub fn note_self_write(path: &Path, write_took: Duration) {
+    let expires = Instant::now() + suppress_for(write_took);
     let mut writes = self_writes().lock().unwrap();
-    writes.retain(|(_, at)| at.elapsed() < SUPPRESS_WINDOW);
-    writes.push((normalise(path), Instant::now()));
+    writes.retain(|(_, until)| *until > Instant::now());
+    writes.push((normalise(path), expires));
 }
 
 fn is_self_write(path: &Path) -> bool {
     let mut writes = self_writes().lock().unwrap();
-    writes.retain(|(_, at)| at.elapsed() < SUPPRESS_WINDOW);
+    writes.retain(|(_, until)| *until > Instant::now());
     let target = normalise(path);
     writes.iter().any(|(p, _)| p == &target)
 }
@@ -168,4 +190,43 @@ pub fn unwatch(doc_id: String) -> crate::error::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The floor is what protects an ordinary local save, where the write is
+    /// too fast to derive anything useful from.
+    #[test]
+    fn a_fast_write_still_gets_the_minimum_window() {
+        assert_eq!(suppress_for(Duration::from_millis(1)), SUPPRESS_MIN);
+        assert_eq!(suppress_for(Duration::ZERO), SUPPRESS_MIN);
+    }
+
+    /// The case this exists for: a save measured at ~1s on a VPN-backed share
+    /// used to be given a flat 2s, which the round trip back could outrun. Even
+    /// held at the floor, that is comfortably more room than before.
+    #[test]
+    fn a_slow_write_beats_the_old_flat_two_seconds() {
+        let window = suppress_for(Duration::from_millis(1100));
+        assert!(window > Duration::from_secs(2), "{window:?} must beat the old constant");
+        assert_eq!(window, SUPPRESS_MIN, "4.8s is under the floor, so the floor wins");
+    }
+
+    /// Past the floor it tracks the write, which is the point of deriving it.
+    #[test]
+    fn a_very_slow_write_scales_beyond_the_floor() {
+        assert_eq!(
+            suppress_for(Duration::from_secs(3)),
+            Duration::from_millis(3000 * 4 + 400),
+        );
+    }
+
+    /// An unbounded window would suppress genuine external changes for as long
+    /// as one pathological write took.
+    #[test]
+    fn a_pathological_write_is_capped() {
+        assert_eq!(suppress_for(Duration::from_secs(600)), SUPPRESS_MAX);
+    }
 }

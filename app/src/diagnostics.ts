@@ -24,7 +24,7 @@ let sessionStart = 0
 export function setVerboseLogging(on: boolean) {
   if (on === verbose) return
   verbose = on
-  void write(`${stamp()}  verbose  logging ${on ? 'enabled' : 'disabled'}`)
+  void write(`${stamp()}  verbose  logging ${on ? 'enabled' : 'disabled'}`, true)
 }
 
 export function isVerbose() {
@@ -37,23 +37,32 @@ function stamp(): string {
   return `${now.toISOString()} ${uptime.padStart(8)}`
 }
 
-async function write(line: string) {
+/**
+ * `durable` asks Rust to fsync the line before returning.
+ *
+ * Worth it for the lines that exist to survive a crash, and not worth it for
+ * the running commentary. Heartbeats and focus changes arrive every few
+ * seconds, and fsyncing each one bought nothing but a steady trickle of
+ * main-thread disk waits — those lines still reach the file, they just travel
+ * through the page cache like any other write.
+ */
+async function write(line: string, durable: boolean) {
   try {
-    await invoke('log_error', { message: line })
+    await invoke('log_error', { message: line, durable })
   } catch {
     // Logging must never itself become a failure path.
   }
 }
 
-/** Always written, verbose or not. */
+/** Always written, verbose or not, and always flushed. */
 export function logEvent(kind: string, detail: string) {
-  void write(`${stamp()}  ${kind.padEnd(10)} ${detail.replace(/\s+/g, ' ').slice(0, 2000)}`)
+  void write(`${stamp()}  ${kind.padEnd(10)} ${detail.replace(/\s+/g, ' ').slice(0, 2000)}`, true)
 }
 
-/** Written only when verbose logging is on. */
+/** Written only when verbose logging is on. Not flushed; see `write`. */
 export function logVerbose(kind: string, detail: string) {
   if (!verbose) return
-  void write(`${stamp()}  ${kind.padEnd(10)} ${detail.replace(/\s+/g, ' ').slice(0, 2000)}`)
+  void write(`${stamp()}  ${kind.padEnd(10)} ${detail.replace(/\s+/g, ' ').slice(0, 2000)}`, false)
 }
 
 export function installDiagnostics() {
