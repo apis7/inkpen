@@ -516,7 +516,7 @@ export function App() {
     let content = view ? view.state.doc.toString() : (doc.pendingContent ?? '')
 
     if (settings.editor.trimTrailingWhitespace && view) {
-      cmd.trimTrailingWhitespace({ state: view.state, dispatch: (t) => view.dispatch(t) })
+      cmd.trimTrailingWhitespaceOnSave({ state: view.state, dispatch: (t) => view.dispatch(t) })
       content = view.state.doc.toString()
     }
 

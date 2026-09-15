@@ -198,18 +198,32 @@ export const joinLines: StateCommand = ({ state, dispatch }) => {
   return true
 }
 
-export const trimTrailingWhitespace: StateCommand = ({ state, dispatch }) => {
-  const changes: ChangeSpec[] = []
-  for (let n = 1; n <= state.doc.lines; n++) {
-    const line = state.doc.line(n)
-    const trimmed = line.text.replace(/[ \t]+$/, '')
-    if (trimmed.length !== line.text.length) {
-      changes.push({ from: line.from + trimmed.length, to: line.to })
+export const trimTrailingWhitespace: StateCommand = trimWhitespace(false)
+
+/**
+ * The trim that runs on save. It leaves alone any trailing whitespace a cursor
+ * sits in or after: the space just typed at the end of a line is about to be
+ * followed by a word, and an autosave firing mid-sentence must not eat it.
+ * The whitespace goes on a later save, once the cursor has moved on.
+ */
+export const trimTrailingWhitespaceOnSave: StateCommand = trimWhitespace(true)
+
+function trimWhitespace(spareCursors: boolean): StateCommand {
+  return ({ state, dispatch }) => {
+    const heads = spareCursors ? state.selection.ranges.map((r) => r.head) : []
+    const changes: ChangeSpec[] = []
+    for (let n = 1; n <= state.doc.lines; n++) {
+      const line = state.doc.line(n)
+      const trimmed = line.text.replace(/[ \t]+$/, '')
+      if (trimmed.length === line.text.length) continue
+      const from = line.from + trimmed.length
+      if (heads.some((h) => h > from && h <= line.to)) continue
+      changes.push({ from, to: line.to })
     }
+    if (!changes.length) return false
+    dispatch(state.update({ changes, userEvent: 'input.trim' }))
+    return true
   }
-  if (!changes.length) return false
-  dispatch(state.update({ changes, userEvent: 'input.trim' }))
-  return true
 }
 
 /**
