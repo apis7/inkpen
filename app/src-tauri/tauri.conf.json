@@ -40,7 +40,7 @@
     "longDescription": "A minimalist, lightning-fast editor for Markdown and common text formats.",
     "windows": {
       "nsis": {
-        "installMode": "currentUser",
+        "installMode": "both",
         "displayLanguageSelector": false,
         "installerHooks": "installer-hooks.nsh",
         "installerIcon": "icons/installer.ico"
