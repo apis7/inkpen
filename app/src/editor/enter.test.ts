@@ -12,7 +12,7 @@
  * @vitest-environment jsdom
  */
 
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
+import { defaultKeymap, history, historyKeymap, undo } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { indentUnit } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
@@ -129,6 +129,37 @@ describe('list continuation is reachable too', () => {
     const v = mount('1. first')
     pressEnter(v)
     expect(v.state.doc.toString()).toBe('1. first\n2. ')
+  })
+
+  it('bumps the numbers after an item inserted mid-list', () => {
+    const doc = '1. a\n2. b\n3. c\n4. d'
+    const v = mount(doc, { cursorAt: '1. a\n2. b'.length })
+    pressEnter(v)
+    expect(v.state.doc.toString()).toBe('1. a\n2. b\n3. \n4. c\n5. d')
+  })
+
+  it('steps over unnumbered lines between items, as in the report', () => {
+    const doc = '1. Upwork\n(i) filter\n(ii) search\n2. Apply\n3. Fiverr'
+    const v = mount(doc, { cursorAt: '1. Upwork'.length })
+    pressEnter(v)
+    expect(v.state.doc.toString()).toBe(
+      '1. Upwork\n2. \n(i) filter\n(ii) search\n3. Apply\n4. Fiverr',
+    )
+  })
+
+  it('leaves nested items alone and stops at a blank line', () => {
+    const doc = '1. a\n    1. x\n2. b\n\n3. other'
+    const v = mount(doc, { cursorAt: 4 })
+    pressEnter(v)
+    expect(v.state.doc.toString()).toBe('1. a\n2. \n    1. x\n3. b\n\n3. other')
+  })
+
+  it('undoes the insert and the renumbering together', () => {
+    const doc = '1. a\n2. b'
+    const v = mount(doc, { cursorAt: 4 })
+    pressEnter(v)
+    undo(v)
+    expect(v.state.doc.toString()).toBe(doc)
   })
 
   it('carries a task checkbox as unchecked', () => {

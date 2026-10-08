@@ -7,12 +7,50 @@
 
 import { getIndentUnit } from '@codemirror/language'
 import { EditorSelection, Prec } from '@codemirror/state'
+import type { ChangeSpec, Text } from '@codemirror/state'
 import { keymap } from '@codemirror/view'
 import type { KeyBinding } from '@codemirror/view'
 
 const LIST_ITEM = /^(\s*)(?:([-*+])|(\d+)([.)]))(\s+)(\[[ xX]\]\s+)?(.*)$/
 
-const continueList: KeyBinding['run'] = ({ state, dispatch }) => {
+/**
+ * Bump the numbers of the items after `afterLine` so an inserted item doesn't
+ * leave a duplicate behind: `1. 2. [new 3.] 3.` becomes `1. 2. 3. 4.`.
+ *
+ * Only siblings move — same indent, same delimiter. Plain lines and deeper
+ * items are content between items (`(i) sub-step`) and are stepped over; a
+ * blank line, or a bullet or shallower item, ends the list. Stops early once an
+ * item already has a number at or past the one it needs, so gaps are kept.
+ */
+function renumberFollowing(
+  doc: Text,
+  afterLine: number,
+  indent: string,
+  delim: string,
+  firstNumber: number,
+): ChangeSpec[] {
+  const changes: ChangeSpec[] = []
+  let expected = firstNumber
+
+  for (let n = afterLine + 1; n <= doc.lines; n++) {
+    const line = doc.line(n)
+    if (!line.text.trim()) break
+
+    const m = LIST_ITEM.exec(line.text)
+    if (!m || m[1].length > indent.length) continue
+    if (m[1] !== indent || !m[3] || m[4] !== delim) break
+
+    const current = Number(m[3])
+    if (current >= expected) break
+
+    const from = line.from + indent.length
+    changes.push({ from, to: from + m[3].length, insert: String(expected) })
+    expected++
+  }
+  return changes
+}
+
+const continueList: KeyBinding['run'] =({ state, dispatch }) => {
   const range = state.selection.main
   if (!range.empty) return false
 
@@ -44,9 +82,13 @@ const continueList: KeyBinding['run'] = ({ state, dispatch }) => {
   const nextTask = task ? '[ ] ' : ''
   const insert = `\n${indent}${marker}${space}${nextTask}`
 
+  const renumber = bullet
+    ? []
+    : renumberFollowing(state.doc, line.number, indent, delim, Number(number) + 2)
+
   dispatch(
     state.update({
-      changes: { from: range.head, insert },
+      changes: [{ from: range.head, insert }, ...renumber],
       selection: EditorSelection.cursor(range.head + insert.length),
       scrollIntoView: true,
       userEvent: 'input.list',
