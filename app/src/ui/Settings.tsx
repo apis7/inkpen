@@ -352,7 +352,7 @@ export function Settings(props: { initial?: Section }) {
         <Show when={section() === 'about'}>
           <h2>About</h2>
           <Row label="Inkpen" hint="A minimalist, lightning-fast editor for Markdown and text.">
-            <span class="set-static">version 0.1.0</span>
+            <span class="set-static">version 0.2.0</span>
           </Row>
           <Row label="Settings file" hint="Edit by hand if you prefer; changes are picked up live.">
             <button class="btn" onClick={() => void ipc.revealInExplorer(tomlPath())}>
